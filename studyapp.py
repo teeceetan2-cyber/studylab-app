@@ -210,121 +210,177 @@ if subject == "📐 Math":
         st.markdown("## 3D Geometry Explorer")
         st.markdown("Click, drag, and scroll to rotate and zoom.")
 
-        shape = st.selectbox("Shape", ["Sphere", "Cube", "Cylinder", "Cone", "Torus", "Helix", "Sinusoidal Surface"])
+        shape = st.selectbox("Shape", [
+            "Sphere", "Cube", "Pyramid", "Prism",
+            "Cylinder", "Cone", "Torus", "Helix", "Sinusoidal Surface"
+        ])
 
         fig = go.Figure()
 
+        # ── Sphere ──
         if shape == "Sphere":
             r = st.slider("Radius", 0.5, 5.0, 2.0, 0.1)
             phi, theta = np.mgrid[0:2*np.pi:40j, 0:np.pi:40j]
             x = r * np.sin(theta) * np.cos(phi)
             y = r * np.sin(theta) * np.sin(phi)
             z = r * np.cos(theta)
-            fig.add_trace(go.Surface(x=x, y=y, z=z, colorscale="Viridis", opacity=0.9,
-                                      showscale=False, name="Sphere"))
-            st.latex(r"x^2 + y^2 + z^2 = r^2")
-            col1, col2 = st.columns(2)
-            with col1: st.metric("Surface Area", f"{4*math.pi*r**2:.2f}")
-            with col2: st.metric("Volume", f"{(4/3)*math.pi*r**3:.2f}")
+            fig.add_trace(go.Surface(x=x, y=y, z=z, colorscale="Viridis", opacity=0.85,
+                                      showscale=False))
+            st.latex(r"V = \frac{4}{3}\pi r^3  \quad A = 4\pi r^2")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{4*math.pi*r**2:.2f}")
+            with c2: st.metric("Volume", f"{(4/3)*math.pi*r**3:.2f}")
 
+        # ── Cube ──
         elif shape == "Cube":
             s = st.slider("Side length", 0.5, 5.0, 2.0, 0.1)
             h = s / 2
-            # 8 corners
-            corners = np.array([[x, y, z] for x in [-h, h] for y in [-h, h] for z in [-h, h]])
-            # 12 edges
-            edges = [
-                [0,1],[1,3],[3,2],[2,0],  # bottom
-                [4,5],[5,7],[7,6],[6,4],  # top
-                [0,4],[1,5],[2,6],[3,7]   # sides
-            ]
-            for e in edges:
-                fig.add_trace(go.Scatter3d(
-                    x=corners[e,0], y=corners[e,1], z=corners[e,2],
-                    mode="lines", line=dict(color="#6366f1", width=4),
-                    showlegend=False, hoverinfo="none"))
-            # vertices
-            fig.add_trace(go.Scatter3d(
-                x=corners[:,0], y=corners[:,1], z=corners[:,2],
-                mode="markers", marker=dict(size=5, color="#ef4444"),
-                showlegend=False, name="Vertices"))
-            fig.update_traces(showscale=False)
-            col1, col2 = st.columns(2)
-            with col1: st.metric("Surface Area", f"{6*s**2:.2f}")
-            with col2: st.metric("Volume", f"{s**3:.2f}")
+            pts = [[x, y, z] for x in [-h, h] for y in [-h, h] for z in [-h, h]]
+            edges = [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]]
+            ex, ey, ez = [], [], []
+            for a, b in edges:
+                ex += [pts[a][0], pts[b][0], None]
+                ey += [pts[a][1], pts[b][1], None]
+                ez += [pts[a][2], pts[b][2], None]
+            fig.add_trace(go.Scatter3d(x=ex, y=ey, z=ez, mode="lines",
+                                        line=dict(color="#6366f1", width=4),
+                                        hoverinfo="none", showlegend=False))
+            fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
+                                        z=[p[2] for p in pts], mode="markers",
+                                        marker=dict(size=6, color="#ef4444"),
+                                        hoverinfo="none", showlegend=False))
+            st.latex(r"V = s^3  \quad A = 6s^2")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{6*s**2:.2f}")
+            with c2: st.metric("Volume", f"{s**3:.2f}")
 
+        # ── Pyramid ──
+        elif shape == "Pyramid":
+            bs = st.slider("Base side", 0.5, 5.0, 2.0, 0.1)
+            ph = st.slider("Height", 0.5, 5.0, 2.0, 0.1)
+            hb = bs / 2
+            # [0-3]=base, [4]=apex
+            pts = [[-hb,-hb,0],[hb,-hb,0],[hb,hb,0],[-hb,hb,0],[0,0,ph]]
+            edges = [[0,1],[1,2],[2,3],[3,0],[0,4],[1,4],[2,4],[3,4]]
+            ex, ey, ez = [], [], []
+            for a, b in edges:
+                ex += [pts[a][0], pts[b][0], None]
+                ey += [pts[a][1], pts[b][1], None]
+                ez += [pts[a][2], pts[b][2], None]
+            fig.add_trace(go.Scatter3d(x=ex, y=ey, z=ez, mode="lines",
+                                        line=dict(color="#f59e0b", width=4),
+                                        hoverinfo="none", showlegend=False))
+            fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
+                                        z=[p[2] for p in pts], mode="markers",
+                                        marker=dict(size=6, color="#ef4444"),
+                                        hoverinfo="none", showlegend=False))
+            slant = math.sqrt(hb**2 + ph**2)
+            a_base = bs**2
+            a_side = 2 * bs * slant
+            st.latex(r"V = \frac{1}{3}s^2 h  \quad A = s^2 + 2s\sqrt{(\frac{s}{2})^2 + h^2}")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{a_base + a_side:.2f}")
+            with c2: st.metric("Volume", f"{(1/3)*bs**2*ph:.2f}")
+
+        # ── Prism (triangular) ──
+        elif shape == "Prism":
+            bl = st.slider("Base triangle side", 0.5, 5.0, 2.0, 0.1)
+            pr_h = st.slider("Prism height", 0.5, 5.0, 3.0, 0.1)
+            ht = math.sqrt(3)/2 * bl  # triangle height
+            # triangle vertices at z=0 and z=pr_h
+            pts = [
+                [-bl/2, -ht/3, 0], [bl/2, -ht/3, 0], [0, 2*ht/3, 0],
+                [-bl/2, -ht/3, pr_h], [bl/2, -ht/3, pr_h], [0, 2*ht/3, pr_h]
+            ]
+            edges = [[0,1],[1,2],[2,0],[3,4],[4,5],[5,3],[0,3],[1,4],[2,5]]
+            ex, ey, ez = [], [], []
+            for a, b in edges:
+                ex += [pts[a][0], pts[b][0], None]
+                ey += [pts[a][1], pts[b][1], None]
+                ez += [pts[a][2], pts[b][2], None]
+            fig.add_trace(go.Scatter3d(x=ex, y=ey, z=ez, mode="lines",
+                                        line=dict(color="#10b981", width=4),
+                                        hoverinfo="none", showlegend=False))
+            fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
+                                        z=[p[2] for p in pts], mode="markers",
+                                        marker=dict(size=6, color="#ef4444"),
+                                        hoverinfo="none", showlegend=False))
+            a_base_tri = (math.sqrt(3)/4) * bl**2
+            st.latex(r"V = \frac{\sqrt{3}}{4}s^2 h  \quad A = \frac{\sqrt{3}}{2}s^2 + 3sh")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{2*a_base_tri + 3*bl*pr_h:.2f}")
+            with c2: st.metric("Volume", f"{a_base_tri*pr_h:.2f}")
+
+        # ── Cylinder ──
         elif shape == "Cylinder":
             r = st.slider("Radius", 0.5, 5.0, 2.0, 0.1)
             h = st.slider("Height", 1.0, 8.0, 4.0, 0.1)
-            z_cyl = np.linspace(-h/2, h/2, 30)
-            theta_cyl = np.linspace(0, 2*np.pi, 40)
-            theta_cyl, z_cyl = np.meshgrid(theta_cyl, z_cyl)
-            x_cyl = r * np.cos(theta_cyl)
-            y_cyl = r * np.sin(theta_cyl)
-            fig.add_trace(go.Surface(x=x_cyl, y=y_cyl, z=z_cyl, colorscale="Turbo",
-                                      opacity=0.85, showscale=False, name="Cylinder"))
-            st.latex(r"V = \pi r^2 h \quad\quad A = 2\pi r(h+r)")
-            col1, col2 = st.columns(2)
-            with col1: st.metric("Surface Area", f"{2*math.pi*r*(h+r):.2f}")
-            with col2: st.metric("Volume", f"{math.pi*r**2*h:.2f}")
+            zc = np.linspace(-h/2, h/2, 30)
+            tc = np.linspace(0, 2*np.pi, 40)
+            tc, zc = np.meshgrid(tc, zc)
+            fig.add_trace(go.Surface(x=r*np.cos(tc), y=r*np.sin(tc), z=zc,
+                                      colorscale="Turbo", opacity=0.85, showscale=False))
+            st.latex(r"V = \pi r^2 h  \quad A = 2\pi r(h+r)")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{2*math.pi*r*(h+r):.2f}")
+            with c2: st.metric("Volume", f"{math.pi*r**2*h:.2f}")
 
+        # ── Cone ──
         elif shape == "Cone":
             r = st.slider("Base radius", 0.5, 5.0, 2.0, 0.1)
             h = st.slider("Height", 1.0, 8.0, 4.0, 0.1)
             n = 40
-            theta_cone = np.linspace(0, 2*np.pi, n)
-            z_cone = np.linspace(0, h, n)
-            theta_cone, z_cone = np.meshgrid(theta_cone, z_cone)
-            r_cone = r * (1 - z_cone / h)
-            x_cone = r_cone * np.cos(theta_cone)
-            y_cone = r_cone * np.sin(theta_cone)
-            fig.add_trace(go.Surface(x=x_cone, y=y_cone, z=z_cone, colorscale="Electric",
-                                      opacity=0.85, showscale=False, name="Cone"))
-            st.latex(r"V = \frac{1}{3}\pi r^2 h")
-            col1, col2 = st.columns(2)
+            tc2, zc2 = np.meshgrid(np.linspace(0, 2*np.pi, n), np.linspace(0, h, n))
+            rc = r * (1 - zc2 / h)
+            fig.add_trace(go.Surface(x=rc*np.cos(tc2), y=rc*np.sin(tc2), z=zc2,
+                                      colorscale="Electric", opacity=0.85, showscale=False))
             slant = math.sqrt(r**2 + h**2)
-            with col1: st.metric("Surface Area", f"{math.pi*r*(r+slant):.2f}")
-            with col2: st.metric("Volume", f"{(1/3)*math.pi*r**2*h:.2f}")
+            st.latex(r"V = \frac{1}{3}\pi r^2 h  \quad A = \pi r(r+l)")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{math.pi*r*(r+slant):.2f}")
+            with c2: st.metric("Volume", f"{(1/3)*math.pi*r**2*h:.2f}")
 
+        # ── Torus ──
         elif shape == "Torus":
             R = st.slider("Major radius", 1.0, 5.0, 3.0, 0.1)
             r = st.slider("Minor radius", 0.3, 3.0, 1.0, 0.1)
             u, v = np.mgrid[0:2*np.pi:50j, 0:2*np.pi:50j]
-            x_t = (R + r*np.cos(v)) * np.cos(u)
-            y_t = (R + r*np.cos(v)) * np.sin(u)
-            z_t = r * np.sin(v)
-            fig.add_trace(go.Surface(x=x_t, y=y_t, z=z_t, colorscale="Portland",
-                                      opacity=0.9, showscale=False, name="Torus"))
-            st.latex(r"V = 2\pi^2 R r^2 \quad\quad A = 4\pi^2 R r")
-            col1, col2 = st.columns(2)
-            with col1: st.metric("Surface Area", f"{4*math.pi**2*R*r:.2f}")
-            with col2: st.metric("Volume", f"{2*math.pi**2*R*r**2:.2f}")
+            fig.add_trace(go.Surface(
+                x=(R + r*np.cos(v))*np.cos(u),
+                y=(R + r*np.cos(v))*np.sin(u),
+                z=r*np.sin(v),
+                colorscale="Portland", opacity=0.9, showscale=False))
+            st.latex(r"V = 2\pi^2 R r^2  \quad A = 4\pi^2 R r")
+            c1, c2 = st.columns(2)
+            with c1: st.metric("Surface Area", f"{4*math.pi**2*R*r:.2f}")
+            with c2: st.metric("Volume", f"{2*math.pi**2*R*r**2:.2f}")
 
+        # ── Helix ──
         elif shape == "Helix":
             coils = st.slider("Coils", 1, 20, 5, 1)
             r = st.slider("Radius", 0.3, 3.0, 1.5, 0.1)
             t_h = np.linspace(0, coils*2*np.pi, 500)
-            x_h = r * np.cos(t_h)
-            y_h = r * np.sin(t_h)
             z_h = np.linspace(0, 5, 500)
-            fig.add_trace(go.Scatter3d(x=x_h, y=y_h, z=z_h, mode="lines",
-                                        line=dict(color="#6366f1", width=5), name="Helix"))
-            # sphere bob
-            fig.add_trace(go.Scatter3d(x=[x_h[-1]], y=[y_h[-1]], z=[z_h[-1]], mode="markers",
-                                        marker=dict(size=6, color="#ef4444"), name="End"))
-            fig.update_traces(showscale=False)
-            st.info(f"Length ≈ {math.sqrt((2*math.pi*r*coils)**2 + 25):.2f} units")
+            fig.add_trace(go.Scatter3d(x=r*np.cos(t_h), y=r*np.sin(t_h), z=z_h,
+                                        mode="lines", line=dict(color="#6366f1", width=5),
+                                        showlegend=False))
+            fig.add_trace(go.Scatter3d(x=[r*np.cos(t_h[-1])], y=[r*np.sin(t_h[-1])],
+                                        z=[z_h[-1]], mode="markers",
+                                        marker=dict(size=8, color="#ef4444"),
+                                        showlegend=False))
+            approx_len = math.sqrt((2*math.pi*r*coils)**2 + 25)
+            st.info(f"**Estimated length:** {approx_len:.2f} units (one coil ≈ {approx_len/coils:.2f})")
 
+        # ── Sinusoidal Surface ──
         elif shape == "Sinusoidal Surface":
             amp = st.slider("Amplitude", 0.5, 5.0, 2.0, 0.1)
             freq_s = st.slider("Frequency", 0.5, 5.0, 2.0, 0.1)
-            x_s = np.linspace(-5, 5, 50)
-            y_s = np.linspace(-5, 5, 50)
-            x_s, y_s = np.meshgrid(x_s, y_s)
-            z_s = amp * np.sin(freq_s * np.sqrt(x_s**2 + y_s**2))
-            fig.add_trace(go.Surface(x=x_s, y=y_s, z=z_s, colorscale="Thermal",
-                                      opacity=0.9, showscale=False, name="Wave"))
-            st.latex(r"z = A \sin(f \cdot \sqrt{x^2 + y^2})")
+            xs = np.linspace(-5, 5, 50)
+            ys = np.linspace(-5, 5, 50)
+            xs, ys = np.meshgrid(xs, ys)
+            fig.add_trace(go.Surface(x=xs, y=ys, z=amp*np.sin(freq_s*np.sqrt(xs**2+ys**2)),
+                                      colorscale="Thermal", opacity=0.9, showscale=False))
+            st.latex(r"z = A\sin\left(f\sqrt{x^2+y^2}\right)")
 
         fig.update_layout(
             height=550,
