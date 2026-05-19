@@ -208,12 +208,27 @@ if subject == "📐 Math":
     # ── 3D Geometry ────────────────────────────────────────────
     elif topic == "3D Geometry":
         st.markdown("## 3D Geometry Explorer")
-        st.markdown("Click, drag, and scroll to rotate and zoom.")
+        st.markdown("Click, drag, and scroll to rotate and zoom. Dimension labels shown in color.")
 
         shape = st.selectbox("Shape", [
             "Sphere", "Cube", "Pyramid", "Prism",
             "Cylinder", "Cone", "Torus", "Helix", "Sinusoidal Surface"
         ])
+
+        dim_color_r = "#ef4444"   # red — radius
+        dim_color_h = "#3b82f6"   # blue — height
+        dim_color_s = "#22c55e"   # green — side / length
+        dim_color_R = "#f97316"   # orange — major radius
+
+        def label_3d(fig, x, y, z, text, color="white", size=14):
+            fig.add_trace(go.Scatter3d(x=[x], y=[y], z=[z], mode="text",
+                                        text=[text], textfont=dict(color=color, size=size),
+                                        hoverinfo="none", showlegend=False))
+
+        def dim_line(fig, x1, y1, z1, x2, y2, z2, color, width=3):
+            fig.add_trace(go.Scatter3d(x=[x1, x2], y=[y1, y2], z=[z1, z2],
+                                        mode="lines", line=dict(color=color, width=width, dash="dash"),
+                                        hoverinfo="none", showlegend=False))
 
         fig = go.Figure()
 
@@ -226,6 +241,12 @@ if subject == "📐 Math":
             z = r * np.cos(theta)
             fig.add_trace(go.Surface(x=x, y=y, z=z, colorscale="Viridis", opacity=0.85,
                                       showscale=False))
+            # center dot + radius line
+            dim_line(fig, 0, 0, 0, r, 0, 0, dim_color_r, 3)
+            fig.add_trace(go.Scatter3d(x=[0], y=[0], z=[0], mode="markers",
+                                        marker=dict(size=4, color="white"),
+                                        hoverinfo="none", showlegend=False))
+            label_3d(fig, r/2, 0, -0.4, "r", dim_color_r, 16)
             st.latex(r"V = \frac{4}{3}\pi r^3  \quad A = 4\pi r^2")
             c1, c2 = st.columns(2)
             with c1: st.metric("Surface Area", f"{4*math.pi*r**2:.2f}")
@@ -234,8 +255,8 @@ if subject == "📐 Math":
         # ── Cube ──
         elif shape == "Cube":
             s = st.slider("Side length", 0.5, 5.0, 2.0, 0.1)
-            h = s / 2
-            pts = [[x, y, z] for x in [-h, h] for y in [-h, h] for z in [-h, h]]
+            h2 = s / 2
+            pts = [[x, y, z] for x in [-h2, h2] for y in [-h2, h2] for z in [-h2, h2]]
             edges = [[0,1],[1,3],[3,2],[2,0],[4,5],[5,7],[7,6],[6,4],[0,4],[1,5],[2,6],[3,7]]
             ex, ey, ez = [], [], []
             for a, b in edges:
@@ -245,10 +266,15 @@ if subject == "📐 Math":
             fig.add_trace(go.Scatter3d(x=ex, y=ey, z=ez, mode="lines",
                                         line=dict(color="#6366f1", width=4),
                                         hoverinfo="none", showlegend=False))
+            # vertices
             fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
                                         z=[p[2] for p in pts], mode="markers",
-                                        marker=dict(size=6, color="#ef4444"),
+                                        marker=dict(size=5, color="#ef4444"),
                                         hoverinfo="none", showlegend=False))
+            # side dimension along bottom edge (0→1)
+            dim_line(fig, pts[0][0], pts[0][1]-0.8, pts[0][2],
+                     pts[1][0], pts[1][1]-0.8, pts[1][2], dim_color_s, 2)
+            label_3d(fig, 0, -h2-0.8, -h2, "s", dim_color_s, 16)
             st.latex(r"V = s^3  \quad A = 6s^2")
             c1, c2 = st.columns(2)
             with c1: st.metric("Surface Area", f"{6*s**2:.2f}")
@@ -259,7 +285,6 @@ if subject == "📐 Math":
             bs = st.slider("Base side", 0.5, 5.0, 2.0, 0.1)
             ph = st.slider("Height", 0.5, 5.0, 2.0, 0.1)
             hb = bs / 2
-            # [0-3]=base, [4]=apex
             pts = [[-hb,-hb,0],[hb,-hb,0],[hb,hb,0],[-hb,hb,0],[0,0,ph]]
             edges = [[0,1],[1,2],[2,3],[3,0],[0,4],[1,4],[2,4],[3,4]]
             ex, ey, ez = [], [], []
@@ -272,8 +297,14 @@ if subject == "📐 Math":
                                         hoverinfo="none", showlegend=False))
             fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
                                         z=[p[2] for p in pts], mode="markers",
-                                        marker=dict(size=6, color="#ef4444"),
+                                        marker=dict(size=5, color="#ef4444"),
                                         hoverinfo="none", showlegend=False))
+            # height line: base center → apex
+            dim_line(fig, 0, 0, 0, 0, 0, ph, dim_color_h, 2)
+            label_3d(fig, 0.4, 0, ph/2, "h", dim_color_h, 16)
+            # base side dimension
+            dim_line(fig, pts[0][0], pts[0][1]-0.6, 0, pts[1][0], pts[1][1]-0.6, 0, dim_color_s, 2)
+            label_3d(fig, 0, -hb-0.6, 0, "s", dim_color_s, 16)
             slant = math.sqrt(hb**2 + ph**2)
             a_base = bs**2
             a_side = 2 * bs * slant
@@ -286,8 +317,7 @@ if subject == "📐 Math":
         elif shape == "Prism":
             bl = st.slider("Base triangle side", 0.5, 5.0, 2.0, 0.1)
             pr_h = st.slider("Prism height", 0.5, 5.0, 3.0, 0.1)
-            ht = math.sqrt(3)/2 * bl  # triangle height
-            # triangle vertices at z=0 and z=pr_h
+            ht = math.sqrt(3)/2 * bl
             pts = [
                 [-bl/2, -ht/3, 0], [bl/2, -ht/3, 0], [0, 2*ht/3, 0],
                 [-bl/2, -ht/3, pr_h], [bl/2, -ht/3, pr_h], [0, 2*ht/3, pr_h]
@@ -303,8 +333,14 @@ if subject == "📐 Math":
                                         hoverinfo="none", showlegend=False))
             fig.add_trace(go.Scatter3d(x=[p[0] for p in pts], y=[p[1] for p in pts],
                                         z=[p[2] for p in pts], mode="markers",
-                                        marker=dict(size=6, color="#ef4444"),
+                                        marker=dict(size=5, color="#ef4444"),
                                         hoverinfo="none", showlegend=False))
+            # side dimension
+            dim_line(fig, -bl/2, -ht/3-0.6, 0, bl/2, -ht/3-0.6, 0, dim_color_s, 2)
+            label_3d(fig, 0, -ht/3-0.6, 0, "s", dim_color_s, 16)
+            # height dimension
+            dim_line(fig, bl/2+0.6, -ht/3, 0, bl/2+0.6, -ht/3, pr_h, dim_color_h, 2)
+            label_3d(fig, bl/2+0.6, -ht/3, pr_h/2, "h", dim_color_h, 16)
             a_base_tri = (math.sqrt(3)/4) * bl**2
             st.latex(r"V = \frac{\sqrt{3}}{4}s^2 h  \quad A = \frac{\sqrt{3}}{2}s^2 + 3sh")
             c1, c2 = st.columns(2)
@@ -320,6 +356,12 @@ if subject == "📐 Math":
             tc, zc = np.meshgrid(tc, zc)
             fig.add_trace(go.Surface(x=r*np.cos(tc), y=r*np.sin(tc), z=zc,
                                       colorscale="Turbo", opacity=0.85, showscale=False))
+            # radius line at base
+            dim_line(fig, 0, 0, -h/2, r, 0, -h/2, dim_color_r, 2)
+            label_3d(fig, r/2, -0.4, -h/2-0.4, "r", dim_color_r, 16)
+            # height line on side
+            dim_line(fig, r+0.5, 0, -h/2, r+0.5, 0, h/2, dim_color_h, 2)
+            label_3d(fig, r+0.5, 0, 0, "h", dim_color_h, 16)
             st.latex(r"V = \pi r^2 h  \quad A = 2\pi r(h+r)")
             c1, c2 = st.columns(2)
             with c1: st.metric("Surface Area", f"{2*math.pi*r*(h+r):.2f}")
@@ -334,10 +376,19 @@ if subject == "📐 Math":
             rc = r * (1 - zc2 / h)
             fig.add_trace(go.Surface(x=rc*np.cos(tc2), y=rc*np.sin(tc2), z=zc2,
                                       colorscale="Electric", opacity=0.85, showscale=False))
-            slant = math.sqrt(r**2 + h**2)
+            # radius at base
+            dim_line(fig, 0, 0, 0, r, 0, 0, dim_color_r, 2)
+            label_3d(fig, r/2, -0.4, -0.4, "r", dim_color_r, 16)
+            # height line
+            dim_line(fig, 0, 0, 0, 0, 0, h, dim_color_h, 2)
+            label_3d(fig, 0.4, 0, h/2, "h", dim_color_h, 16)
+            # slant line
+            sl = math.sqrt(r**2 + h**2)
+            dim_line(fig, r, 0, 0, 0, 0, h, "#a855f7", 2)
+            label_3d(fig, r/2, 0.4, h/2, "l", "#a855f7", 16)
             st.latex(r"V = \frac{1}{3}\pi r^2 h  \quad A = \pi r(r+l)")
             c1, c2 = st.columns(2)
-            with c1: st.metric("Surface Area", f"{math.pi*r*(r+slant):.2f}")
+            with c1: st.metric("Surface Area", f"{math.pi*r*(r+sl):.2f}")
             with c2: st.metric("Volume", f"{(1/3)*math.pi*r**2*h:.2f}")
 
         # ── Torus ──
@@ -350,6 +401,16 @@ if subject == "📐 Math":
                 y=(R + r*np.cos(v))*np.sin(u),
                 z=r*np.sin(v),
                 colorscale="Portland", opacity=0.9, showscale=False))
+            # major radius: center → tube center
+            dim_line(fig, 0, 0, 0, R, 0, 0, dim_color_R, 2)
+            label_3d(fig, R/2, -0.5, 0.4, "R", dim_color_R, 16)
+            # minor radius: tube center → tube surface
+            dim_line(fig, R, 0, 0, R+r, 0, 0, dim_color_r, 2)
+            label_3d(fig, R+r/2, -0.5, 0.4, "r", dim_color_r, 16)
+            # center dot
+            fig.add_trace(go.Scatter3d(x=[0], y=[0], z=[0], mode="markers",
+                                        marker=dict(size=4, color="white"),
+                                        hoverinfo="none", showlegend=False))
             st.latex(r"V = 2\pi^2 R r^2  \quad A = 4\pi^2 R r")
             c1, c2 = st.columns(2)
             with c1: st.metric("Surface Area", f"{4*math.pi**2*R*r:.2f}")
@@ -366,8 +427,18 @@ if subject == "📐 Math":
                                         showlegend=False))
             fig.add_trace(go.Scatter3d(x=[r*np.cos(t_h[-1])], y=[r*np.sin(t_h[-1])],
                                         z=[z_h[-1]], mode="markers",
-                                        marker=dict(size=8, color="#ef4444"),
+                                        marker=dict(size=7, color="#ef4444"),
                                         showlegend=False))
+            # radius line at z=0
+            dim_line(fig, 0, 0, 0, r, 0, 0, dim_color_r, 2)
+            label_3d(fig, r/2, -0.4, 0, "r", dim_color_r, 16)
+            # center axis line
+            dim_line(fig, 0, 0, 0, 0, 0, 5, dim_color_h, 2)
+            label_3d(fig, 0.3, 0.3, 2.5, "h", dim_color_h, 16)
+            # center dot at base
+            fig.add_trace(go.Scatter3d(x=[0], y=[0], z=[0], mode="markers",
+                                        marker=dict(size=4, color="white"),
+                                        hoverinfo="none", showlegend=False))
             approx_len = math.sqrt((2*math.pi*r*coils)**2 + 25)
             st.info(f"**Estimated length:** {approx_len:.2f} units (one coil ≈ {approx_len/coils:.2f})")
 
@@ -378,8 +449,14 @@ if subject == "📐 Math":
             xs = np.linspace(-5, 5, 50)
             ys = np.linspace(-5, 5, 50)
             xs, ys = np.meshgrid(xs, ys)
-            fig.add_trace(go.Surface(x=xs, y=ys, z=amp*np.sin(freq_s*np.sqrt(xs**2+ys**2)),
+            z_surf = amp * np.sin(freq_s * np.sqrt(xs**2 + ys**2))
+            fig.add_trace(go.Surface(x=xs, y=ys, z=z_surf,
                                       colorscale="Thermal", opacity=0.9, showscale=False))
+            # amplitude indicator
+            idx0 = np.argmin(np.abs(xs[0,:]))
+            idx_peak = np.argmax(z_surf[:, idx0])
+            dim_line(fig, 0, 0, 0, 0, 0, amp, dim_color_h, 2)
+            label_3d(fig, 0.5, 0, amp/2, "A", dim_color_h, 16)
             st.latex(r"z = A\sin\left(f\sqrt{x^2+y^2}\right)")
 
         fig.update_layout(
@@ -394,7 +471,7 @@ if subject == "📐 Math":
             margin=dict(l=10, r=10, t=10, b=10)
         )
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("🖱️ Drag to rotate · Scroll to zoom · Right-click to pan")
+        st.caption("🖱️ Drag to rotate · Scroll to zoom · Dashed lines show dimensions")
 
 # ================================================================
 #                        ⚡ PHYSICS SECTION
